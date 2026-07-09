@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand colors (from Stravex brand guidelines) */
+  --color-brand: #3b7ddb;
+  --color-brand-hover: #2f68ba;
+  --color-brand-soft: #eaf1fb;
+  --color-ink: #2d2d2d;
+  --color-paper: #ffffff;
+  --color-mist: #f5f7fa;
+  --color-night: #0b1220;
+  --color-night-elevated: #121b2e;
+  --color-night-elevated-2: #182238;
+  --color-night-border: rgba(255, 255, 255, 0.09);
+  --color-night-muted: #8b98af;
+  --color-amber: #c8922a;
+  --color-amber-soft: #2a2113;
+
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-ibm-plex-mono);
+
+  --shell-max: 1280px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand: var(--color-brand);
+  --color-brand-hover: var(--color-brand-hover);
+  --color-brand-soft: var(--color-brand-soft);
+  --color-ink: var(--color-ink);
+  --color-paper: var(--color-paper);
+  --color-mist: var(--color-mist);
+  --color-night: var(--color-night);
+  --color-night-elevated: var(--color-night-elevated);
+  --color-night-elevated-2: var(--color-night-elevated-2);
+  --color-night-border: var(--color-night-border);
+  --color-night-muted: var(--color-night-muted);
+  --color-amber: var(--color-amber);
+  --color-amber-soft: var(--color-amber-soft);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-color: var(--color-night-border) transparent;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.font-mono-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, var(--color-night-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-night-border) 1px, transparent 1px);
+  background-size: 48px 48px;
 }

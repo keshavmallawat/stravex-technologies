@@ -1,0 +1,605 @@
+// Stravex Technologies — Admin CMS database schema
+// SQLite for now (Hostinger persistent Node hosting). Swappable to Postgres
+// later by changing the datasource provider + DATABASE_URL only.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Auth (Auth.js / NextAuth v5 + Google OAuth)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("admin")
+  createdAt     DateTime  @default(now())
+
+  accounts    Account[]
+  sessions    Session[]
+  products    Product[]
+  mediaAssets MediaAsset[]
+  blogPosts   BlogPost[]
+  newsPosts   NewsPost[]
+  jobOpenings JobOpening[]
+  teamMembers TeamMember[]
+  partners    Partner[]
+  technologies Technology[]
+  solutions   Solution[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// Gate for who is allowed to sign in as an admin via Google OAuth.
+/// Checked in the NextAuth `signIn` callback before any session is created.
+model AdminAllowlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  label     String?
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Products
+// ---------------------------------------------------------------------------
+
+model Product {
+  id       String @id @default(cuid())
+  name     String
+  slug     String @unique
+  category String
+
+  /// "draft" | "published" | "archived" — CMS workflow state
+  status   String  @default("draft")
+  /// Public-facing badge text, e.g. "In Development", "Operational"
+  displayStatus String @default("In Development")
+  featured Boolean @default(false)
+  sortOrder Int    @default(0)
+
+  /// CSS aspect-ratio value for the hero image, e.g. "16 / 10" or "3 / 4"
+  heroImageAspect String @default("16 / 10")
+
+  tagline          String? // short punchy phrase, e.g. "Point. Analyze. Press. Protect."
+  positioning      String? // one-line positioning statement
+  purpose          String? // main descriptive paragraph
+  problemStatement String?
+  missionProfile   String? // extended narrative / mission profile
+
+  designGoals        Json @default("[]") // string[]
+  workflow            Json @default("[]") // { stage: string, description: string }[]
+  coreCapabilities    Json @default("[]") // string[]
+  keyFeatures         Json @default("[]") // string[]
+  technicalSpecs      Json @default("[]") // { label: string, value: string }[]
+  applications        Json @default("[]") // string[]
+  relatedTechnologies Json @default("[]") // string[]
+  /// Generalized platform/feature-list sections unique to some products,
+  /// e.g. [{ heading: "ESC Features", items: [...] }]
+  extraFeatureLists   Json @default("[]") // { heading: string, items: string[] }[]
+
+  heroPosterUrl String?
+  galleryUrls   Json    @default("[]") // string[]
+  datasheetUrl  String?
+
+  heroTitle           String? // optional override of the H1 hero text, distinct from `name`
+  ctaLabel            String?
+  ctaHref             String?
+  relatedProductSlugs Json    @default("[]") // string[], manually curated "You might also like"
+
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
+
+  contentBlocks ProductContentBlock[]
+
+  @@index([status])
+  @@index([sortOrder])
+}
+
+/// Optional page-builder blocks rendered after a product's fixed sections.
+/// `content` shape depends on `type`:
+///   hero: {heading,subheading,imageUrl} | text: {heading?,body} |
+///   two-column: {left,right} | gallery: {images:string[]} |
+///   video: {url,caption?} | poster: {imageUrl,caption?} |
+///   timeline: {items:{date,title,description}[]} |
+///   workflow: {stages:{stage,description}[]} |
+///   specs-table: {rows:{label,value}[]} |
+///   cta: {heading,body?,buttonLabel,buttonHref} |
+///   download: {label,fileUrl} | faq: {items:{question,answer}[]}
+model ProductContentBlock {
+  id        String @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type      String
+  sortOrder Int    @default(0)
+  content   Json   @default("[]") // SQLite DEFAULT clause can't express {}; app code always writes real objects on create
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------------------
+// Media Library
+// ---------------------------------------------------------------------------
+
+model MediaAsset {
+  id           String @id @default(cuid())
+  filename     String
+  originalName String
+  url          String
+  mimeType     String
+  size         Int
+
+  /// "product-poster" | "product-gallery" | "datasheet" | "og-image" |
+  /// "founder-photo" | "team-photo" | "blog-image" | "news-image" |
+  /// "incubator-logo" | "partner-logo" | "resume" | "site-logo" | "favicon" | "other"
+  /// Doubles as the "folder" concept in the Media Library UI.
+  category String @default("other")
+  altText  String?
+
+  /// Storage backend for this asset. Always "cloudinary" going forward;
+  /// kept as a field (not hardcoded) so a second provider could be added
+  /// later without a schema change.
+  provider           String  @default("cloudinary")
+  cloudinaryPublicId String?
+  width              Int?
+  height             Int?
+  /// "image" | "raw" | "video", as returned by Cloudinary. Null for
+  /// anything not uploaded through the Cloudinary path.
+  resourceType       String?
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Contact Manager
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id      String @id @default(cuid())
+  name    String
+  company String?
+  email   String
+  phone   String?
+  message String
+
+  /// "unread" | "read" | "replied" | "archived"
+  status String @default("unread")
+
+  /// Firestore contact_submissions doc id, for the one-time legacy import.
+  /// Null for contacts submitted through this CMS going forward.
+  firestoreId String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Careers: Job Openings + Applications
+// ---------------------------------------------------------------------------
+
+model JobOpening {
+  id     String @id @default(cuid())
+  title  String
+  slug   String @unique
+
+  /// "draft" | "published" | "archived"
+  status   String  @default("draft")
+  featured Boolean @default(false)
+  sortOrder Int    @default(0)
+
+  department     String
+  employmentType String
+  experience     String?
+  location       String
+  /// "onsite" | "hybrid" | "remote"
+  workMode       String @default("onsite")
+
+  responsibilities Json    @default("[]") // string[]
+  requirements     Json    @default("[]") // string[]
+  skills           Json    @default("[]") // string[]
+  salary           String? // free text, optional
+
+  expiryDate DateTime?
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  applications CareerApplication[]
+
+  @@index([status])
+  @@index([sortOrder])
+}
+
+model CareerApplication {
+  id            String @id @default(cuid())
+  applicantName String
+  /// Snapshot of the role title at time of applying, stays meaningful even
+  /// if the JobOpening is later edited or deleted.
+  appliedRole   String
+
+  jobOpeningId String?
+  jobOpening   JobOpening? @relation(fields: [jobOpeningId], references: [id], onDelete: SetNull)
+
+  company String?
+  email   String
+  phone   String?
+  resumeUrl String
+  message   String?
+
+  /// "new" | "reviewing" | "shortlisted" | "interview_scheduled" | "selected" | "rejected"
+  status   String  @default("new")
+  archived Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([archived])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Blog Manager
+// ---------------------------------------------------------------------------
+
+model BlogPost {
+  id    String @id @default(cuid())
+  title String
+  slug  String @unique
+
+  /// "draft" | "scheduled" | "published" | "archived"
+  status String @default("draft")
+
+  excerpt String?
+  content String  @default("") // Tiptap HTML string
+
+  featuredImageUrl String?
+  galleryUrls      Json    @default("[]") // string[]
+
+  category String?
+  tags     Json    @default("[]") // string[]
+
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+
+  viewCount   Int       @default(0)
+  publishedAt DateTime? // also drives scheduling (future date = not yet live)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// Preserved original author name for migrated content whose author isn't
+  /// a current CMS admin (e.g. "Stravex Technologies Team" from Firestore).
+  authorName String?
+
+  /// Firestore blogs doc id, for the one-time legacy import. Null for posts
+  /// authored through this CMS going forward.
+  firestoreId String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([publishedAt])
+}
+
+// ---------------------------------------------------------------------------
+// News Manager
+// ---------------------------------------------------------------------------
+
+model NewsPost {
+  id    String @id @default(cuid())
+  title String
+  slug  String @unique
+
+  /// "draft" | "scheduled" | "published" | "archived"
+  status String @default("draft")
+
+  excerpt String?
+  content String  @default("") // Tiptap HTML, or a wrapped summary for migrated press mentions
+
+  featuredImageUrl String?
+  galleryUrls      Json    @default("[]") // string[]
+
+  category String?
+  tags     Json    @default("[]") // string[]
+
+  seoTitle       String?
+  seoDescription String?
+  ogImageUrl     String?
+
+  viewCount   Int       @default(0)
+  publishedAt DateTime?
+
+  /// Set only for migrated/third-party press mentions; null for in-house articles.
+  outlet      String?
+  externalUrl String?
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// Preserved original author name for migrated content whose author isn't
+  /// a current CMS admin (e.g. "Stravex Technologies Team" from Firestore).
+  authorName String?
+
+  /// Firestore blogs doc id, for the one-time legacy import. Null for posts
+  /// authored through this CMS going forward (including the earlier
+  /// press.ts-seeded rows, until/unless adopted by this migration).
+  firestoreId String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([publishedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Site Settings (singleton)
+// ---------------------------------------------------------------------------
+
+/// Always queried/updated as the single row with id "singleton". Seeded once
+/// from the pre-existing static data/nav.ts, data/contact.ts, and logo.tsx
+/// values so nothing visually changes until an admin edits this in the CMS.
+model SiteSettings {
+  id String @id @default("singleton")
+
+  companyName       String @default("Stravex Technologies")
+  addressLines      Json   @default("[]") // string[]
+  email             String @default("")
+  phone             String @default("")
+  phoneHref         String @default("")
+  businessHoursDays String @default("")
+  businessHoursTime String @default("")
+  socialLinks       Json   @default("[]") // { linkedin?, instagram?, twitter?, facebook?, youtube? } — [] default, see ProductContentBlock.content note
+  navLinks          Json   @default("[]") // { label: string, href: string }[]
+  footerTagline     String @default("")
+
+  seoDefaultTitle       String?
+  seoDefaultDescription String?
+  ogDefaultImageUrl     String?
+  faviconUrl            String?
+
+  logoLightUrl String?
+  logoDarkUrl  String?
+
+  analyticsIds Json @default("[]") // { ga4?, gtm?, metaPixel? } — [] default, see ProductContentBlock.content note
+
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Homepage CMS
+// ---------------------------------------------------------------------------
+
+/// One row per homepage section. `content` shape is documented per `key`
+/// (e.g. the "why-choose" row's content holds its pillar list).
+model HomepageSection {
+  id  String @id @default(cuid())
+  key String @unique // "hero" | "mission" | "why-choose" | "featured-products" | "incubators" | "cta"
+
+  heading String?
+  body    String?
+  content Json    @default("[]") // [] default, see ProductContentBlock.content note
+
+  ctaLabel          String?
+  ctaHref           String?
+  secondaryCtaLabel String?
+  secondaryCtaHref  String?
+
+  imageUrl  String? // background/poster image
+  mediaUrls Json    @default("[]") // string[], section-specific supplementary media
+
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Team Manager
+// ---------------------------------------------------------------------------
+
+model TeamMember {
+  id   String @id @default(cuid())
+  name String
+  role String
+
+  department String?
+  bio        String?
+  photoUrl   String?
+
+  expertiseTags Json @default("[]") // string[]
+  socialLinks   Json @default("[]") // { linkedin?, twitter?, email? } — [] default, see ProductContentBlock.content note
+
+  sortOrder Int     @default(0)
+  status    String  @default("draft") // "draft" | "published"
+  featured  Boolean @default(false)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Incubators & Partners Manager
+// ---------------------------------------------------------------------------
+
+model Partner {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+
+  /// "incubator" | "partner"
+  category String @default("partner")
+  /// "active" | "inactive"
+  status   String @default("active")
+  sortOrder Int   @default(0)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([category])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Technologies / Solutions Manager
+// ---------------------------------------------------------------------------
+
+model Technology {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+
+  appliedInProductSlugs Json @default("[]") // string[]
+
+  sortOrder Int    @default(0)
+  status    String @default("draft") // "draft" | "published"
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+}
+
+model Solution {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+
+  relatedProductSlugs Json @default("[]") // string[]
+
+  sortOrder Int    @default(0)
+  status    String @default("draft") // "draft" | "published"
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// SEO Manager
+// ---------------------------------------------------------------------------
+
+model PageSeo {
+  id      String @id @default(cuid())
+  pageKey String @unique // "home" | "about" | "technologies" | "solutions" | "contact" | "careers" | "team"
+
+  title           String?
+  metaDescription String?
+  ogImageUrl      String?
+  canonicalUrl    String?
+  robots          String  @default("index,follow")
+  keywords        Json    @default("[]") // string[]
+
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id       String  @id @default(cuid())
+  type     String
+  message  String
+  linkHref String?
+  read     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([read])
+  @@index([createdAt])
+}
