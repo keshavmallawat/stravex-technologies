@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/screenshots/homepage.png" alt="Stravex Technologies website" width="100%" />
 
-  <h1>Stravex Technologies CMS</h1>
+  <h1>Stravex Technologies v2</h1>
 
   <p>A Next.js 16 corporate website with a Prisma-backed admin CMS, Google sign-in restricted to an allowlist, and a Cloudinary media library.</p>
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-This is the second generation of the Stravex Technologies website. It replaces the earlier React + Firebase single-page app ([Stravex_Technologies](https://github.com/keshavmallawat/Stravex_Technologies)) with a server-rendered Next.js application and a relational data model.
+This is the second generation of the Stravex Technologies website. It replaces the earlier React + Firebase single-page app ([stravex-technologies-v1](https://github.com/keshavmallawat/stravex-technologies-v1)) with a server-rendered Next.js application and a relational data model.
 
 The public site (products, solutions, technologies, team, careers, news, blog, contact) is rendered from content that the Stravex team manages through an admin dashboard at `/admin`, with no code changes needed to publish.
 
@@ -50,8 +50,8 @@ The public site (products, solutions, technologies, team, careers, news, blog, c
 Requirements: Node.js 20 or newer and a Google OAuth client (for admin sign-in).
 
 ```bash
-git clone https://github.com/keshavmallawat/stravex-technologies.git
-cd stravex-technologies
+git clone https://github.com/keshavmallawat/stravex-technologies-v2.git
+cd stravex-technologies-v2
 npm install
 cp .env.example .env     # then fill in the values
 npx prisma db push
