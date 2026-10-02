@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Media Library**: Headless Cloudinary integration for robust asset management.
 - **SEO Manager**: Centralized database-driven SEO metadata for all dynamic routes.
 - **Server Actions**: Secure, type-safe data mutations without API routes.
-- **Graphify Integration**: Built-in knowledge graph architectural mapping for safe refactoring and zero regressions.
 - **Hostinger Deployment Readiness**: Full PM2 and Node.js deployment configurations.
 
 ### Changed

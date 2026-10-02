@@ -43,7 +43,7 @@ All operations under **100ms** on SQLite. Production Turso/PostgreSQL will be fa
 
 ## 3. Prisma Query Patterns
 
-### Observations (from code audit via Graphify):
+### Observations (from code audit):
 - **God node:** `prisma.ts` has 52 edges — it is the central data access singleton (correct pattern).
 - **N+1 risk:** `duplicateProductAction` uses a while-loop with `prisma.product.findUnique` to find an available slug. Mitigated by the fact that slug collisions are rare (max 5 attempts before random suffix fallback).
 - **Reorder pattern:** `reorderProductAction`, `reorderHomepageSectionAction`, `reorderTeamMemberAction`, and `reorderPartnerAction` all fetch the entire list to find an index, then swap two rows in a `$transaction`. This is O(n) on list size. Acceptable for current content volumes (<100 items per category), but will degrade beyond 1000+ items.

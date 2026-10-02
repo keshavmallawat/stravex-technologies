@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: "file:./ci.db"
+
     strategy:
       matrix:
         node-version: [20.x]
@@ -39,7 +42,7 @@ jobs:
       run: npm run build
       env:
         # Provide dummy values so Next.js build doesn't fail on missing env vars during static generation
-        DATABASE_URL: "file:./dev.db"
+        DATABASE_URL: "file:./ci.db"
         AUTH_SECRET: "dummy_secret_for_build"
         AUTH_URL: "http://localhost:3000"
         AUTH_TRUST_HOST: "true"

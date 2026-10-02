@@ -22,7 +22,7 @@
 | 11 | Authentication verified | ✅ PASS | Google OAuth session active; 5 admin routes correctly redirect unauthenticated access (307) |
 | 12 | SEO verified | ✅ PASS | title, description, viewport confirmed on all 10 public pages |
 | 13 | Accessibility checks completed | ⚠️ PARTIAL | Not executed (browser quota exhausted). No ARIA issues found in code review. |
-| 14 | Regression suite passes | ✅ PASS | BUG-001 fix regression confirmed isolated to Community 4 (Graphify) |
+| 14 | Regression suite passes | ✅ PASS | BUG-001 fix regression confirmed isolated to the Careers and Contacts module |
 | 15 | Cleanup completed | ✅ PASS | All QA scripts, api/qa-runner, qa.db.bak, cloudinary_qa_baseline.json removed |
 | 16 | No temporary QA artifacts remain | ✅ PASS | Verified via `git status` — only permanent project files remain |
 

@@ -22,7 +22,6 @@ This major release transitions the platform from a legacy client-side Firebase a
   - Homepage Customization
 - **Headless Media Library:** Replaced Firebase Storage with a fully integrated **Cloudinary** media pipeline. Supports uploading, categorizing, rendering, and securely deleting assets via the Cloudinary API.
 - **Advanced SEO Manager:** SEO metadata is now centralized in a database-driven module, dynamically injected into all public routes, ensuring perfect Lighthouse accessibility and SEO scores.
-- **Zero-Regression Refactoring:** Utilized **Graphify Knowledge Graphs** to map the entire architecture, enabling safe, isolated bug fixes during QA without unintended side effects.
 
 ## Quality Assurance & Performance
 This release underwent rigorous automated and manual testing. The QA process validated:

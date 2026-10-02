@@ -16,8 +16,8 @@
 **Root Cause:**  
 `APPLICATION_STATUSES` (a `const` array) and `ApplicationStatus` (a `type`) were exported from a `"use server"` file. Next.js enforces that `"use server"` modules may only export async functions — exporting non-async-function values throws `invalid-use-server-value` at runtime, which crashed the entire `/api/qa-runner` proxy when this module was imported.
 
-**Graphify Impact Analysis:**  
-Community 4 (Careers + Contacts). Graphify confirmed `APPLICATION_STATUSES` had no callers outside this file. Fix is fully isolated.
+**Impact Analysis:**  
+Careers and Contacts module. Search confirmed `APPLICATION_STATUSES` had no callers outside this file. Fix is fully isolated.
 
 **Fix Applied:**  
 - Removed the `export` keyword from `APPLICATION_STATUSES` const  
